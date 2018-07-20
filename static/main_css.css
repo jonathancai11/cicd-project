@@ -1,0 +1,10 @@
+.righttab {
+    overflow:hidden;width:800px;height:350px;background:#eee;float:left;left:200px;top:0;padding:3px;
+}
+
+.lefttab {
+    overflow:auto;width:80px;height:350px;background:#ccc;float:left;left:0;top:0;padding:3px;
+}
+textarea {
+    resize: none;
+}
