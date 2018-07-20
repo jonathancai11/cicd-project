@@ -27,25 +27,19 @@ $(document).ready(function () {
             window.alert("Enter non-empty url")
             return
         }
-        window.alert(url + token)
-        var data = JSON.stringify({
+        // window.alert(url + token)
+        var json = JSON.stringify({
             Url: url,
             Token: token,
         })
         // Send POST request to api
-        $.post(
-            APIURL, 
-            data, 
-            function(data, status){
-            alert("Data: " + data + "\nStatus: " + status);
-            }
-        );
-        window.alert("DONE")
-        // $.ajax({
-        //     method: "POST",
-        //     url: APIURL,
-        //     data: json,
-        // })
+        $.ajax({
+            method: "POST",
+            url: APIurl,
+            data: json,
+            dataType: "json",
+            // success: success
+        })
     });
 
 });
