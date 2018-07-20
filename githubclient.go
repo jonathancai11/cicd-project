@@ -33,10 +33,14 @@ type GithubWebhookCreatorConfig struct {
 }
 
 type GithubConfig struct {
-	Url   string
 	Token string
 }
 
+// CreateGithubWebhook creates a github webhook.
+// srcUrl should be https://api.github.com/repos/:owner/:repo/hooks
+// name just gives the webhook a name
+// trgUrl is the target url that we want the payload to be sent to
+// events are the type of events we want the webhook to post for (defaults to "push")
 func CreateGithubWebhook(name string, srcUrl string, trgUrl string, events []EventType) {
 	config := GithubWebhookCreatorConfig{
 		Url:         srcUrl,
@@ -60,21 +64,24 @@ func CreateGithubWebhook(name string, srcUrl string, trgUrl string, events []Eve
 	defer resp.Body.Close()
 }
 
-func PrintRepos(token string) {
+func GetRepos(token string) []string {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	fmt.Println("Created client")
-
-	// 	// list all repositories for the authenticated user
+	// fmt.Println("Created client")
+	// list all repositories for the authenticated user
 	repos, _, err := client.Repositories.List(ctx, "", nil)
 	if err != nil {
 		fmt.Println(err)
 	}
+	result := make([]string, 0)
 	for _, repo := range repos {
-		fmt.Println(*repo.Name, ":", *repo.HooksURL)
+		// fmt.Println(*repo.Name, ":", *repo.HooksURL)
+		a := *repo.Name
+		result = append(result, a)
 	}
+	return result
 }

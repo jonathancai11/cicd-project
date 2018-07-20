@@ -14,22 +14,15 @@ $(document).ready(function () {
     //     },
     // })
 
-    $("#gitrepos").click(function () {
+    $("#gitsave").click(function () {
         // window.alert("Clicked list repos")
-
-        var url = $("#giturl").val()
         var token = $("#gittoken").val()
-        if (url === "") { // If empty url, alert
-            window.alert("Enter non-empty url")
-            return
-        }
         if (token === "") { // If empty token, alert
-            window.alert("Enter non-empty url")
+            window.alert("Enter non-empty token")
             return
         }
         // window.alert(url + token)
         var json = JSON.stringify({
-            Url: url,
             Token: token,
         })
         // Send POST request to api
@@ -38,7 +31,17 @@ $(document).ready(function () {
             url: APIurl,
             data: json,
             dataType: "json",
-            // success: success
+        })
+    });
+
+    $("#gitrepos").click(function () {
+        // window.alert("Clicked list repos")
+        $.ajax({
+            method: "GET",
+            url: APIurl,
+            success: function (result, status, jgXHR) {
+                $("#gitcommit").text(result)
+            }
         })
     });
 
