@@ -1,84 +1,143 @@
 package main
 
 import (
-	// "bytes"
-	"fmt"
-	"log"
-	// "strings"
-	// "context"
+	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
-	// "net/url"
-	// "bytes"
 
 	"github.com/google/go-github/github"
-	// "golang.org/x/oauth2"
+	"golang.org/x/oauth2"
 )
 
 const (
-	address = ""
+	projectaddr = "/Users/jonathancai/go/src/cicd-project/"
+	// projectaddr = "/root/go/src/cicd-project/"
 )
 
 var (
 	config GithubConfig
+	token  string
 )
 
 func main() {
-	// p1 := &Page{Title: "TestPage", Body: []byte("This is a sample Page.")}
-	// p1.save()
-	// p2, _ := loadPage("TestPage")
-	// fmt.Println(string(p2.Body))
+	fs := http.FileServer(http.Dir(projectaddr + "static/"))
+	http.Handle("/", fs)
+	http.HandleFunc("/api/", APIHandler)     // API handles interaction with frontend
+	http.HandleFunc("/webhook/", APIHandler) // Webhook handles the actual webhook payloads
+	fmt.Println("Listening and serving on port :8080...")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 
-	// fs := http.FileServer(http.Dir("/Users/jonathancai/go/src/cicd-project/static/"))
-	// http.Handle("/", fs)
-	// http.HandleFunc("/api/", APIHandler) // API handles interaction with frontend
-	// http.HandleFunc("/view/", viewHandler)
-	// fmt.Println("Listening and serving on port :8080...")
-	// log.Fatal(http.ListenAndServe(":8080", nil))
+	// hookname := "test"
+	// githubapi := "https://api.github.com/"
+	// username := "jonathancai11"
+	// reponame := "cicd-project"
+	// trgurl := "http://192.168.1.192:8080"
+	// var events []EventType
+	// events = append(events, Push)
+	// CreateGithubWebhook(hookname, username, reponame, trgurl, events, Token)
 }
 
-func viewHandler(w http.ResponseWriter, r *http.Request) {
-	title := r.URL.Path[len("/view/"):]
-	p, err := loadPage(title)
-	if err != nil {
-		fmt.Println("Error loading page")
-		p = &Page{Title: title}
-	}
-	fmt.Fprintf(w, "<h1>%s</h1><div>%s</div>", p.Title, p.Body)
-}
-
+// APIHandler deals with JS
 func APIHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("APIHandler called")
-	fmt.Println(r.Method + " request")
+	fmt.Println("APIHandler called:", r.Method+" request")
 	switch r.Method {
 	case "GET":
-		fmt.Println(config.Token)
-		repos := GetRepos(config.Token)
-		// var buffer bytes.Buffer
-		for _, repo := range repos {
-			// buffer.WriteString(repo)
-			fmt.Println(repo)
+		switch r.URL.Path {
+		case "/api/token": // Get saved token
+			fmt.Println("Getting saved token...")
+			b, err := ioutil.ReadFile(projectaddr + "config.txt")
+			if err != nil {
+				log.Println("Error reading file")
+				return
+			}
+			s := string(b[:])
+			fmt.Println("Saved token:", s)
+			token = s
+			w.Write([]byte(b))
+		case "/api/repos": // Get repositories
+			fmt.Println("Getting repos...")
+			repos := GetRepos(token) // (must save token before calling get repos)
+			var buffer bytes.Buffer
+			for _, repo := range repos {
+				buffer.WriteString(repo + ", ")
+				// fmt.Println(repo)
+			}
+			result := buffer.String()
+			fmt.Println("Repos:", result)
+			w.Write([]byte(result))
 		}
-		// result := buffer.String()
-		// fmt.Println(result)
-		// w.Write([]bytes(result))
 	case "POST":
-		b, er := ioutil.ReadAll(r.Body)
-		if er != nil {
-			log.Println("Error reading response")
+		switch r.URL.Path {
+		case "/api/token": // Save token
+			fmt.Println("Saving token")
+			b, er := ioutil.ReadAll(r.Body)
+			if er != nil {
+				log.Println("Error reading response")
+				return
+			}
+			var config GithubConfig
+			err := json.Unmarshal(b, &config)
+			if err != nil {
+				fmt.Println("Error unmarshalling token")
+			}
+			err = ioutil.WriteFile(projectaddr+"config.txt", []byte(config.Token), 0644)
+			if err != nil {
+				fmt.Println("Error writing to config file")
+				return
+			}
+			token = config.Token // save token on server
+			fmt.Println("Saved token: " + config.Token)
+		case "/api/list": // Get list of hooks
+			b, er := ioutil.ReadAll(r.Body)
+			if er != nil {
+				log.Println("Error reading response")
+				return
+			}
+			var config GithubConfig
+			err := json.Unmarshal(b, &config)
+			if err != nil {
+				log.Println("Error unmarshalling github config")
+			}
+			// ctx := context.Background()
+			// ts := oauth2.StaticTokenSource(
+			// 	&oauth2.Token{AccessToken: token},
+			// )
+			// tc := oauth2.NewClient(ctx, ts)
+			// client := github.NewClient(tc)
+			// rs := client.Repositories
+			// lsopts := github.ListOptions{}
+			// rs.ListHooks(ctx, config.Username, config.Repo, lsopts)
+			GetHooks(config.Username, config.Repo, config.Token)
+		case "/api/create": // Create a hook
+			fmt.Println("Creating hook")
+			b, er := ioutil.ReadAll(r.Body)
+			if er != nil {
+				log.Println("Error reading response")
+				return
+			}
 			return
+			// NEED TO FIGURE OUT THIS PART:
+			var config GithubConfig
+			err := json.Unmarshal(b, &config)
+			if err != nil {
+				log.Println("Error unmarshalling token")
+			}
+			err = ioutil.WriteFile(projectaddr+"config.txt", []byte(config.Token), 0644)
+			if err != nil {
+				log.Println("Error writing to config file")
+				return
+			}
 		}
-		err := json.Unmarshal(b, &config)
-		if err != nil {
-			log.Println("Error unmarshalling payload")
-		}
-		fmt.Println("Resulting github config: ", config.Token)
 	case "DELETE":
 	default:
 	}
 }
 
+// WebhookHandler handles the actual payloads from Github
 func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
@@ -93,6 +152,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("Error unmarshalling payload")
 		}
+		fmt.Println(payload)
 	case "DELETE":
 	default:
 	}

@@ -17,34 +17,51 @@
         <button id="gitcreate">Create Hook</button>
         <br/><br/>
         <button id="gitlist">List Hooks</button>
+        <br/><br/>
+        <button id="gitedit">Edit Hook</button>
     </div>
         
     <div class="righttab">
         <p>Personal token:</p>
-        <textarea id="gittoken" row='4' cols = '80'></textarea>
-        <p>Repository Name:</p>
-        <textarea id="giturl" row='4' cols = '80'></textarea>
-        <p>Idk:</p>
-        <textarea id="gitidk" row='4' cols = '80'></textarea>
-        <p>Latest commit:</p>
-        <p id="gitcommit">none</p>
+        <textarea id="gittoken"></textarea>
+        <p>Github username:</p>
+        <textarea id="gitusername" ></textarea>
+        <p>Github repository name:</p>
+        <textarea id="gitrepo" ></textarea>
+        <p>Latest webhook:</p>
+        <p id="gitcommit">---</p>
+        <p>Repositories:</p>
+        <p id="gitrepositories">---</p>
+        <p>Hooks:
+        <p id="githooks">---</p>
+    </div>
+
+    <div class="righttab">
+        <p>Hook name:</p>
+        <textarea id="githookname" ></textarea>
+        <p>Hook events:</p>
+        <form>
+            <input type="checkbox" id="gitpush" checked> Push <br>
+            <input type="checkbox" id="gitpullrequest"> Pull Request <br>
+            <!-- <input type="submit" value="Submit"> -->
+        </form>
     </div>
                 
-    <div class="lefttab" id ="leftbit">
+    <!-- <div class="lefttab" id ="leftbit">
         <h4>BitBucket</h4>
         <button id="bitsave">Save</button>
     </div>
         
     <div class="righttab">
         <p>Url:</p>
-        <textarea id="biturl" row='4' cols = '80'></textarea>
+        <textarea id="biturl" ></textarea>
         <p>Personal token:</p>
-        <textarea id="bittoken" row='4' cols = '80'></textarea>
+        <textarea id="bittoken" ></textarea>
         <p>Idk:</p>
-        <textarea id="bitidk" row='4' cols = '80'></textarea>
+        <textarea id="bitidk" ></textarea>
         <p>Latest commit:</p>
         <p id="bitcommit">none</p>
         
-    </div>
+    </div> -->
 </body>
 </html>
