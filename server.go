@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"context"
+	// "context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,7 +10,7 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
+	// "golang.org/x/oauth2"
 )
 
 const (
@@ -23,22 +23,17 @@ var (
 	token  string
 )
 
+type HooksReturn struct {
+	Hooks [][]string
+}
+
 func main() {
 	fs := http.FileServer(http.Dir(projectaddr + "static/"))
 	http.Handle("/", fs)
-	http.HandleFunc("/api/", APIHandler)     // API handles interaction with frontend
-	http.HandleFunc("/webhook/", APIHandler) // Webhook handles the actual webhook payloads
+	http.HandleFunc("/api/", APIHandler)         // API handles interaction with frontend
+	http.HandleFunc("/webhook/", WebhookHandler) // Webhook handles the actual webhook payloads
 	fmt.Println("Listening and serving on port :8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
-
-	// hookname := "test"
-	// githubapi := "https://api.github.com/"
-	// username := "jonathancai11"
-	// reponame := "cicd-project"
-	// trgurl := "http://192.168.1.192:8080"
-	// var events []EventType
-	// events = append(events, Push)
-	// CreateGithubWebhook(hookname, username, reponame, trgurl, events, Token)
 }
 
 // APIHandler deals with JS
@@ -102,16 +97,10 @@ func APIHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Println("Error unmarshalling github config")
 			}
-			// ctx := context.Background()
-			// ts := oauth2.StaticTokenSource(
-			// 	&oauth2.Token{AccessToken: token},
-			// )
-			// tc := oauth2.NewClient(ctx, ts)
-			// client := github.NewClient(tc)
-			// rs := client.Repositories
-			// lsopts := github.ListOptions{}
-			// rs.ListHooks(ctx, config.Username, config.Repo, lsopts)
-			GetHooks(config.Username, config.Repo, config.Token)
+			GetHooksClient(config.Token, config.Username, config.Repo)
+			// result := GetHooksClient(config.Token, config.Username, config.Repo)
+			// a, err := json.Marshal(result)
+			// w.Write(a)
 		case "/api/create": // Create a hook
 			fmt.Println("Creating hook")
 			b, er := ioutil.ReadAll(r.Body)
@@ -137,11 +126,20 @@ func APIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/* Notes:
+- When creating a webhook, Github will initially send a request (which does not contain commits).
+- Further payloads (push) will contain all commits or commithead (latest commit).
+- Webhooks can be configured for specific events (default is push).
+*/
+
 // WebhookHandler handles the actual payloads from Github
 func WebhookHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Webhook Handler received " + r.Method + " request")
 	switch r.Method {
 	case "GET":
 	case "POST":
+		fmt.Println("URL:", r.URL.Path)
+		fmt.Println("Webhook handler received post request")
 		b, er := ioutil.ReadAll(r.Body)
 		if er != nil {
 			log.Println("Error reading response")
@@ -152,7 +150,17 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("Error unmarshalling payload")
 		}
-		fmt.Println(payload)
+		headcom := payload.HeadCommit
+		if headcom != nil {
+			fmt.Println("Head Commit:", "- Author:", *headcom.Author.Name, "ID:", *headcom.ID, "Time:", *headcom.Timestamp)
+			// IF payload is push
+			commits := payload.Commits
+			fmt.Println("List of commits:")
+			for idx, com := range commits {
+				fmt.Println("Commit #", idx, "- Author:", com.Author.Name, "ID:", com.ID, "Time:", com.Timestamp, "Modified:", com.Modified, "Removed:", com.Removed)
+			}
+		}
+		// fmt.Println(payload)
 	case "DELETE":
 	default:
 	}
