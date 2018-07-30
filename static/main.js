@@ -13,7 +13,7 @@ $(document).ready(function () {
         },
     })
 
-    $("#gitsave").click(function () { // save token
+    $("#gitsave").click(function () { // save config
         var token = $("#gittoken").val()
         if (token == "") {
             window.alert("Enter non-empty token")
@@ -89,9 +89,22 @@ $(document).ready(function () {
             url: APIurl + "list",
             dataType: "json",
             data: json,
-            
+            success: function (result, status, jgXHR) {
+                // window.alert("Hello")
+                $("#githooks").text("result")
+            }
         })
     });
+
+    // function ListHook() {
+    //     return $.ajax({
+    //         method: "POST",
+    //         url: APIurl + "list",
+    //         dataType: "json",
+    //         data: json,
+    //     })
+
+    // }
 
     $("#gitedit").click(function () { // edit hook
         window.alert("Nothing configured yet")

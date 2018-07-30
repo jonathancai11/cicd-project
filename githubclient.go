@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/google/go-github/github"
@@ -13,6 +14,11 @@ import (
 )
 
 type EventType string
+
+// type Hook struct {
+// 	URL    string
+// 	Events []*EventType
+// }
 
 var (
 	Push        EventType = "push"
@@ -82,33 +88,12 @@ func CreateGithubWebhook(hookname string, username string, reponame string, trgU
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	defer resp.Body.Close()
 	contents, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading response:", err)
-	}
-	fmt.Printf("%s\n", string(contents))
-}
-
-// GetHooks retrieves all hooks active/inactive for a username/reponame
-// Only prints out hooks right now...
-func GetHooks(username string, reponame string, token string) {
-
-	url := "https://api.github.com/repos/" + username + "/" + reponame + "/hooks"
-	fmt.Println("url:", url)
-
-	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", " token "+token)
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	contents, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading response:", err)
+		log.Println("Error reading response:", err)
 	}
 	fmt.Printf("%s\n", string(contents))
 }
@@ -123,7 +108,7 @@ func GetRepos(token string) []string {
 	client := github.NewClient(tc)
 	repos, _, err := client.Repositories.List(ctx, "", nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	result := make([]string, 0)
 	for _, repo := range repos {
@@ -131,4 +116,29 @@ func GetRepos(token string) []string {
 		result = append(result, a)
 	}
 	return result
+}
+
+func GetHooksClient(token, username, repo string) [][]string {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	hooks, _, err := client.Repositories.ListHooks(ctx, username, repo, nil)
+	if err != nil {
+		log.Println(err)
+	}
+	ret := make([][]string, 0)
+	fmt.Println("Hooks:")
+	for idx, hook := range hooks {
+		a := make([]string, 0)
+		a = append(a, *hook.URL)
+		for _, event := range hook.Events {
+			a = append(a, event)
+		}
+		fmt.Println("Hook #", idx+1, "- Created:", *hook.CreatedAt, "ID:", *hook.ID, "Config:", hook.Config, "Events:", hook.Events)
+		ret = append(ret, a)
+	}
+	return ret
 }
