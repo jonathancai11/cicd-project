@@ -10,7 +10,7 @@
 <body>
     <div class="lefttab">
         <h4>Github</h4>
-        <button id="gitsave">Save Token</button>
+        <button id="gitsave">Save Config</button>
         <br/><br/>
         <button id="gitrepos">List Repos</button>
         <br/>
@@ -31,13 +31,11 @@
         <textarea id="gitrepo" ></textarea>
         <p>Repositories:</p>
         <p id="gitrepositories">---</p>
-        <p>Hooks:
-        <p id="githooks">---</p>
     </div>
 
     <div class="righttab">
-        <p>Hook name:</p>
-        <textarea id="githookname" ></textarea>
+        <p>Hook URL:</p>
+        <textarea id="githookurl"></textarea>
         <p>Hook events:</p>
         <form>
             <input type="checkbox" id="gitpush" checked> Push <br>
@@ -45,6 +43,8 @@
             <!-- <input type="submit" value="Submit"> -->
         </form>
     </div>
+
+    <div id="githooks"></div>
                 
     <!-- <div class="lefttab" id ="leftbit">
         <h4>BitBucket</h4>

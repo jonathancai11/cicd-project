@@ -1,9 +1,30 @@
 .righttab {
-    overflow:hidden;width:450px;height:450px;background:#eee;float:left;left:200px;top:0;padding:3px;
+    overflow:hidden;
+    width:450px;
+    height:360px;
+    background:#eee;
+    float:left;
+    left:200px;
+    top:0;
+    padding:3px;
 }
 
 .lefttab {
-    overflow:auto;width:100px;height:450px;background:#ccc;float:left;left:0;top:0;padding:3px;
+    overflow:auto;
+    width:100px;
+    height:360px;
+    background:#ccc;
+    float:left;
+    left:0;top:0;padding:3px;
+}
+#githooks{
+    clear:left
+}
+
+.hook {
+    float:left;
+    background:#ccc;
+    width:1018px;
 }
 textarea {
     resize: none;
