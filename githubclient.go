@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -15,41 +11,21 @@ import (
 
 type EventType string
 
-// type Hook struct {
-// 	URL    string
-// 	Events []*EventType
-// }
-
 var (
 	Push        EventType = "push"
 	PullRequest EventType = "pull_request"
 )
 
-type GithubWebhookCreator struct {
-	Name   string
-	Active bool
-	Events []EventType
-	Config GithubWebhookCreatorConfig
-}
-
-type GithubWebhookCreatorConfig struct {
-	Url         string
-	ContentType string
-	Secret      string
-	InsecureSSL string
-}
-
 type GithubConfig struct {
 	Token    string
 	Username string
 	Repo     string
-	// CreateWebhookConfig CreateWebhookConfig
 }
 
-type CreateWebhookConfig struct {
-	HookName   string
-	PushConfig string
-	PullConfig string
+type CreateGitHookConfig struct {
+	PushConfig bool
+	PullConfig bool
+	HookURL    string
 }
 
 /* Notes:
@@ -58,48 +34,15 @@ type CreateWebhookConfig struct {
 - (404 Error if no repo_hook authorization)
 - Add authentication (token) in header of requests or as parameter ("Authorization: token TOKEN")
 - Never add backslash to end of API call for url
-- You can create up to 20 hooks for a single
+- You can create up to 20 hooks for a single repo???
+
+- Hook name should be "web" (a few other supported names i suppose are unnecessary)
+- There are many (around 20 events that you can listen to), but it defaults to "push" for commits
+- Source URL should be https://api.github.com/repos/:owner/:repo/hooks
+- Target URL just has to be valid IP/url address, will send initial packaged to confirm
 */
 
-// CreateGithubWebhook creates a github webhook.
-// srcUrl should be https://api.github.com/repos/:owner/:repo/hooks
-// name just gives the webhook a name
-// trgUrl is the target url that we want the payload to be sent to
-// events are the type of events we want the webhook to post for (defaults to "push")
-func CreateGithubWebhook(hookname string, username string, reponame string, trgUrl string, events []EventType, token string) {
-	fmt.Println("Creating webhook...")
-	srcUrl := "https://api.github.com/repos/" + username + "/" + reponame + "/hooks?access_token=" + Token
-	fmt.Println("url:", srcUrl)
-	config := GithubWebhookCreatorConfig{
-		Url:         srcUrl,
-		ContentType: "json",
-	}
-	payload := GithubWebhookCreator{
-		Name:   hookname,
-		Active: true,
-		Events: events,
-		Config: config,
-	}
-	fmt.Println("Created payload")
-	b, _ := json.Marshal(payload)
-	req, err := http.NewRequest("POST", trgUrl, bytes.NewBuffer(b))
-	req.Header.Set("Authorization", " token "+token)
-	fmt.Println("Created request")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-	}
-	defer resp.Body.Close()
-	contents, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("Error reading response:", err)
-	}
-	fmt.Printf("%s\n", string(contents))
-}
-
-// GetRepos returns a list of repos authorized to view under given token
-func GetRepos(token string) []string {
+func GetGitRepos(token string) []string {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
@@ -118,27 +61,81 @@ func GetRepos(token string) []string {
 	return result
 }
 
-func GetHooksClient(token, username, repo string) [][]string {
+func GetGitHooks(token, username, repo string) map[string][]string {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	hooks, _, err := client.Repositories.ListHooks(ctx, username, repo, nil)
+	hooks, resp, err := client.Repositories.ListHooks(ctx, username, repo, nil)
 	if err != nil {
 		log.Println(err)
 	}
-	ret := make([][]string, 0)
-	fmt.Println("Hooks:")
-	for idx, hook := range hooks {
-		a := make([]string, 0)
-		a = append(a, *hook.URL)
-		for _, event := range hook.Events {
-			a = append(a, event)
-		}
-		fmt.Println("Hook #", idx+1, "- Created:", *hook.CreatedAt, "ID:", *hook.ID, "Config:", hook.Config, "Events:", hook.Events)
-		ret = append(ret, a)
+	fmt.Println("List webhooks response:", resp)
+	ret := make(map[string][]string)
+	fmt.Println("List of hooks:")
+	for _, hook := range hooks {
+		ret[hook.Config["url"].(string)] = hook.Events
+		fmt.Println("Hook - "+*hook.Name+" Created:", *hook.CreatedAt, "ID:", *hook.ID, "Config:", hook.Config, "Events:", hook.Events)
 	}
 	return ret
+}
+
+func CreateGitHook(username, reponame, trgURL, token string, events []string) {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	config := make(map[string]interface{})
+	config["url"] = trgURL
+	name := "web"
+	hook := github.Hook{
+		Name:   &name,
+		Events: events,
+		Config: config,
+	}
+	_, resp, err := client.Repositories.CreateHook(ctx, username, reponame, &hook)
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Println("Webhook create response:", resp)
+}
+
+func DeleteGitHook(token, username, repo string, hookid int64) {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	resp, err := client.Repositories.DeleteHook(ctx, username, repo, hookid)
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Println("Delete hook response:", resp)
+}
+
+func EditGitHook(token, username, repo, trgURL string, events []string, hookid int64) {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	config := make(map[string]interface{})
+	config["url"] = trgURL
+	name := "web"
+	hook := github.Hook{
+		Name:   &name,
+		Events: events,
+		Config: config,
+	}
+	_, resp, err := client.Repositories.EditHook(ctx, username, repo, hookid, &hook)
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Println("Edit hook response:", resp)
 }
