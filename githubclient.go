@@ -9,11 +9,13 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type EventType string
+// type EventType string
 
 var (
-	Push        EventType = "push"
-	PullRequest EventType = "pull_request"
+	// Push        EventType = "push"
+	// PullRequest EventType = "pull_request"
+	PullRequest = "pull_request"
+	Push        = "push"
 )
 
 type GithubConfig struct {
@@ -40,8 +42,10 @@ type CreateGitHookConfig struct {
 - There are many (around 20 events that you can listen to), but it defaults to "push" for commits
 - Source URL should be https://api.github.com/repos/:owner/:repo/hooks
 - Target URL just has to be valid IP/url address, will send initial packaged to confirm
+- Wildcard event trigger = *, listens to ALL events
 */
 
+// GetGitRepos takes in a Github personal token and returns a string of all repos authorized under the token
 func GetGitRepos(token string) []string {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
@@ -61,14 +65,15 @@ func GetGitRepos(token string) []string {
 	return result
 }
 
-func GetGitHooks(token, username, repo string) map[string][]string {
+// GetGitHooks returns hooks represented by a map of targetURL to event triggers
+func GetGitHooks(config GithubConfig) map[string][]string {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
+		&oauth2.Token{AccessToken: config.Token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	hooks, resp, err := client.Repositories.ListHooks(ctx, username, repo, nil)
+	hooks, resp, err := client.Repositories.ListHooks(ctx, config.Username, config.Repo, nil)
 	if err != nil {
 		log.Println(err)
 	}
@@ -82,58 +87,61 @@ func GetGitHooks(token, username, repo string) map[string][]string {
 	return ret
 }
 
-func CreateGitHook(username, reponame, trgURL, token string, events []string) {
+// CreateGitHook creates a hook listening to events and sending payloads to trgURL under given githubconfig
+func CreateGitHook(config GithubConfig, trgURL string, events []string) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
+		&oauth2.Token{AccessToken: config.Token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	config := make(map[string]interface{})
-	config["url"] = trgURL
+	hookconfig := make(map[string]interface{})
+	hookconfig["url"] = trgURL
 	name := "web"
 	hook := github.Hook{
 		Name:   &name,
 		Events: events,
-		Config: config,
+		Config: hookconfig,
 	}
-	_, resp, err := client.Repositories.CreateHook(ctx, username, reponame, &hook)
+	_, resp, err := client.Repositories.CreateHook(ctx, config.Username, config.Repo, &hook)
 	if err != nil {
 		log.Println(err)
 	}
 	fmt.Println("Webhook create response:", resp)
 }
 
-func DeleteGitHook(token, username, repo string, hookid int64) {
+// DeleteGitHook deletes hook corresponding to hookid under the given githubconfig
+func DeleteGitHook(config GithubConfig, hookid int64) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
+		&oauth2.Token{AccessToken: config.Token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	resp, err := client.Repositories.DeleteHook(ctx, username, repo, hookid)
+	resp, err := client.Repositories.DeleteHook(ctx, config.Username, config.Repo, hookid)
 	if err != nil {
 		log.Println(err)
 	}
 	fmt.Println("Delete hook response:", resp)
 }
 
-func EditGitHook(token, username, repo, trgURL string, events []string, hookid int64) {
+// DeleteGitHook edits hook corresponding to hookid under the given githubconfig, replaces hook configurations with trgURL and events
+func EditGitHook(config GithubConfig, trgURL string, events []string, hookid int64) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
+		&oauth2.Token{AccessToken: config.Token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	config := make(map[string]interface{})
-	config["url"] = trgURL
+	hookconfig := make(map[string]interface{})
+	hookconfig["url"] = trgURL
 	name := "web"
 	hook := github.Hook{
 		Name:   &name,
 		Events: events,
-		Config: config,
+		Config: hookconfig,
 	}
-	_, resp, err := client.Repositories.EditHook(ctx, username, repo, hookid, &hook)
+	_, resp, err := client.Repositories.EditHook(ctx, config.Username, config.Repo, hookid, &hook)
 	if err != nil {
 		log.Println(err)
 	}
