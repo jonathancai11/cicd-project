@@ -17,15 +17,6 @@
     float:left;
     left:0;top:0;padding:3px;
 }
-#githooks{
-    clear:left
-}
-
-.hook {
-    float:left;
-    background:#ccc;
-    width:1018px;
-}
 textarea {
     resize: none;
     width: 300px;
@@ -34,6 +25,30 @@ textarea {
     cols:'80';
 }
 
-#leftbit {
-    clear:both
+#githooks{
+    clear:left
+}
+
+.hook {
+    margin-top: 5px;
+    float:left;
+    background:#ccc;
+    width:1018px;
+    height:40px;
+}
+
+.githook{
+    margin-left: 10px;
+    margin-top: 5px;
+    display:inline-block;
+}
+.githookurl{
+    margin-left: 10px;
+    margin-top: 5px;
+    display:inline-block;
+}
+.githookevents {
+    margin-left: 10px;
+    margin-top: 5px;
+    display:inline-block;
 }

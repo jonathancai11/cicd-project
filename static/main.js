@@ -80,18 +80,35 @@ $(document).ready(function () {
                 for (var key in p) {
                     if (p.hasOwnProperty(key)) {
                         count++
-                        var hook = "<div class='hook'><p>  Hook #  " +count.toString()+ "-  URL:  "+ key + ", Events:  " +p[key] +"</p></div>";
-                        $("#githooks").append(hook)
-                        console.log(key + " -> " + p[key]);
+                        var hook = `<div class='hook'>
+                        <div class='githook'>  
+                        <button class="gitdelete">Delete Hook</button> 
+                        <button class="gitedit">Edit Hook</button> 
+                        Hook #` + count.toString()+ ":</div>" +
+                        "<div class='githookurl'> URL:  "+ key + "</div>" +
+                        "<div class='githookevents'> Events:  " +p[key] + `</div>
+                        </div>`;
+
+                        $("#githooks").append(hook) // Append all hook elements
+                        // console.log(key + " -> " + p[key]);
                     }                
+                }
+                console.log("setting onclicks")
+                hooks = $("#githooks").children(".githook") // Set onclick functions for generated hook elements
+                console.log(hooks)
+                for (var i = 0; i < hooks.length; i++) {
+                    var hook = hooks[i]
+                    console.log(hook);
+                    hook.find("#.gitdelete").onclick = function () {
+                        window.alert("DELETE: Nothing configured yet")
+                    }
+                    hook.find("#.gitedit").onclick = function () {
+                        window.alert("EDIT: Nothing configured yet")
+
+                    }
                 }
             }
         })
-    });
-
-    $("#gitedit").click(function () { // edit hook
-        window.alert("Nothing configured yet")
-        return
     });
 
 });
